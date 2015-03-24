@@ -1,0 +1,137 @@
+# Create live nodes (or return the existing nodes if already created)
+- name: Create live servers (or retrieve the existing ones)
+  local_action:    
+    module: rax
+    credentials: "{{ creds_path }}"
+    name: "{{ server_name }}"
+    flavor: "{{ flavor }}"
+    image: "{{ image }}"
+    region: "{{ region }}"
+    files: "{{ files }}"
+    state: present
+    count: "{{ count }}"
+    group: "{{ group_environ }}"
+    count_offset: 1
+    exact_count: yes
+    wait: yes
+    wait_timeout: 600
+  register: live_nodes
+  tags:
+    - live-nodes
+
+# Show all instances
+- name: show created instances
+  debug: var=live_nodes
+  tags:
+    - live-nodes
+
+# Create new dark servers (show always be created anew)
+- name: Create dark servers
+  local_action:    
+    module: rax
+    credentials: "{{ creds_path }}"
+    name: "{{ server_name }}"
+    flavor: "{{ flavor }}"
+    image: "{{ image }}"
+    region: "{{ region }}"
+    state: present
+    count: "{{ count+new_count }}"
+    group: "{{ group_environ }}"
+    count_offset: 1
+    exact_count: yes
+    wait: yes
+    wait_timeout: 600
+  register: dark_nodes
+  tags:
+    - dark-nodes
+
+# Show new servers data
+- name: show created instances
+  debug: var=dark_nodes
+  tags:
+    - dark-nodes
+
+- name: Remove single deployer nodes
+  local_action:
+    module: rax
+    credentials: "{{ creds_path }}"
+    name: "{{ server_name }}"
+    flavor: "{{ flavor }}"
+    image: "{{ image }}"
+    region: "{{ region }}"
+    state: absent
+    count: "{{ count }}"
+    count_offset: 1
+    #exact_count: yes
+    group: "{{ group_environ }}"
+    wait: yes
+    wait_timeout: 600
+  tags:
+    - single-deployer
+
+# Create new single deployment servers (show always be created anew)
+- name: Create single deployment servers
+  local_action:    
+    module: rax
+    credentials: "{{ creds_path }}"
+    name: "{{ server_name }}"
+    flavor: "{{ flavor }}"
+    image: "{{ image }}"
+    region: "{{ region }}"
+    state: present
+    count: "{{ count }}"
+    group: "{{ group_environ }}"
+    count_offset: 1
+    exact_count: yes
+    wait: yes
+    wait_timeout: 600
+  register: dark_nodes
+  tags:
+    - single-deployer
+
+# Show new servers data
+- name: show created instances
+  debug: var=dark_nodes
+  tags:
+    - single-deployer
+
+# Add new servers to breviarius group, just as before
+- name: Add dar servers to breviarius host group
+  local_action:
+    module: add_host
+    hostname: "{{ item.name }}"
+    ansible_ssh_host: "{{ item.rax_accessipv4 }}"
+    ansible_ssh_pass: "{{ item.rax_adminpass }}"
+    ansible_ssh_user: root
+    groupname: breviarius
+  with_items: dark_nodes.success
+  when: dark_nodes.action == "create"
+  tags:
+    - dark-nodes
+    - single-deployer
+
+# Show dark load balancer nodes
+- name: Show dark load balancer nodes
+  debug: var=solum_dark_load_balancer.balancer.nodes
+  tags:
+    - dark-nodes
+    - single-deployer
+
+# Add new servers to dark load balancer
+- name: Add dark servers to Blue Load balancer
+  local_action:
+    module: rax_clb_nodes
+    credentials: "{{ creds_path }}"
+    load_balancer_id: "{{ dark_load_balancer.balancer.id }}"
+    address: "{{ item.rax_addresses.private[0].addr }}"
+    port: "{{ server_port }}" 
+    condition: enabled
+    type: primary
+    wait: yes
+    wait_timeout: 600
+    region: "{{ region }}"
+  with_items: dark_nodes.success
+  when: dark_nodes.action == "create"
+  tags:
+    - dark-nodes
+    - single-deployer

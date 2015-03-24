@@ -1,0 +1,35 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: True
+  vars:
+    - files:
+        /root/.ssh/authorized_keys: /home/jenkins/.ssh/id_jenkins_rsa.pub
+  roles:
+     - load_balancer
+     - cloud_servers
+     - map_dns
+
+- hosts: breviarius
+  gather_facts: True 
+  roles: 
+     - deploy
+
+- hosts: localhost
+  connection: local
+  gather_facts: True
+  roles:
+     - drain
+     - test
+
+- hosts: breviarius
+  gather_facts: True 
+  roles: 
+     - results
+
+- hosts: localhost
+  connection: local
+  gather_facts: True
+  roles:
+     - store_results
+     - clean_up

@@ -1,0 +1,68 @@
+# This will either create a new live load balancer or return the old one
+- name: Create live load balancer
+  local_action:
+    module: rax_clb
+    credentials: "{{ creds_path }}"
+    name: "live-{{ load_balancer_name }}"
+    port: "{{ lb_port }}"
+    protocol: "{{ lb_protocol }}"
+    type: PUBLIC
+    timeout: 30
+    region: "{{ region }}"
+    wait: yes
+    wait_timeout: 600
+    state: present
+  register: live_load_balancer
+  tags:
+    - live-lb
+
+# Debug the live load balancer data
+- name: Show live load balancer
+  debug: var=live_load_balancer
+  tags:
+    - live-lb
+
+# Remove dark load balancer (if one exists)
+- name: Remove dark load balancer
+  local_action:
+    module: rax_clb
+    credentials: "{{ creds_path }}"
+    name: "dark-{{ load_balancer_name }}"
+    port: "{{ lb_port }}"
+    protocol: "{{ lb_protocol }}"
+    type: PUBLIC
+    timeout: 30
+    region: "{{ region }}"
+    wait: yes
+    wait_timeout: 600
+    state: absent
+  register: dark_load_balancer
+  tags:
+    - remove-dark-lb
+    - remove-single-deployer-lb
+
+# Create dark load balancer
+- name: Create dark load balancer
+  local_action:
+    module: rax_clb
+    credentials: "{{ creds_path }}"
+    name: "dark-{{ load_balancer_name }}"
+    port: "{{ lb_port }}"
+    protocol: "{{ lb_protocol }}"
+    type: PUBLIC
+    timeout: 30
+    region: "{{ region }}"
+    wait: yes
+    wait_timeout: 600
+    state: present
+  register: dark_load_balancer
+  tags:
+    - dark-lb
+    - single-deployer
+
+# Show dark load balancer data
+- name: Show temporary dark load balancer
+  debug: var=dark_load_balancer
+  tags:
+    - dark-lb
+    - single-deployer

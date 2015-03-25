@@ -1,0 +1,81 @@
+# Add nodes registered with dark load balancer to live load balancer
+- name: Add dark nodes to live Load balancer
+  local_action:
+    module: rax_clb_nodes
+    credentials: "{{ creds_path }}"
+    load_balancer_id: "{{ live_load_balancer.balancer.id }}"
+    address: "{{ item.address }}"
+    port: "{{ server_port }}" 
+    condition: enabled
+    type: primary
+    wait: yes
+    wait_timeout: 180
+    region: "{{ region }}"
+  with_items: dark_load_balancer.balancer.nodes
+  when: dark_load_balancer.balancer.nodes is defined
+  tags:
+    - dark-to-live
+
+# Drain nodes from live load balancer
+- name: drain the node
+  local_action:
+    module: rax_clb_nodes
+    credentials: "{{ creds_path }}"
+    load_balancer_id: "{{ live_load_balancer.balancer.id }}"
+    node_id: "{{ item.id }}"
+    condition: draining 
+    wait: true
+    wait_timeout: 180
+    region: "{{ region }}"
+  with_items: live_load_balancer.balancer.nodes
+  when: live_load_balancer.balancer.nodes is defined
+  tags:
+    - dark-to-live
+
+- name: disable the node
+  local_action:
+    module: rax_clb_nodes
+    credentials: "{{ creds_path }}"
+    load_balancer_id: "{{ live_load_balancer.balancer.id }}"
+    node_id: "{{ item.id }}"
+    condition: disabled
+    wait: true
+    wait_timeout: 180
+    region: "{{ region }}"
+  with_items: live_load_balancer.balancer.nodes
+  when: live_load_balancer.balancer.nodes is defined
+  tags:
+    - dark-to-live
+
+- name: remove the node
+  local_action:
+    module: rax_clb_nodes
+    credentials: "{{ creds_path }}"
+    load_balancer_id: "{{ live_load_balancer.balancer.id }}"
+    node_id: "{{ item.id }}"
+    condition: disabled
+    wait: true
+    state: absent
+    wait_timeout: 180
+    region: "{{ region }}"
+  with_items: live_load_balancer.balancer.nodes
+  when: live_load_balancer.balancer.nodes is defined
+  tags:
+    - dark-to-live
+
+- name: Add live nodes to dark Load balancer
+  local_action:
+    module: rax_clb_nodes
+    credentials: "{{ creds_path }}"
+    load_balancer_id: "{{ dark_load_balancer.balancer.id }}"
+    address: "{{ item.address }}"
+    port: "{{ server_port }}" 
+    condition: enabled
+    type: primary
+    wait: yes
+    wait_timeout: 180
+    region: "{{ region }}"
+  with_items: live_load_balancer.balancer.nodes
+  when: live_load_balancer.balancer.nodes is defined
+  tags:
+    - dark-to-live

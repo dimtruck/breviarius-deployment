@@ -1,0 +1,4 @@
+---
+
+validation_src: "{{ lookup('env','HOME') }}/.chef/{{ chef_server }}/validation.pem"
+secret_src:     "{{ lookup('env','HOME') }}/.chef/{{ chef_server }}/secret"

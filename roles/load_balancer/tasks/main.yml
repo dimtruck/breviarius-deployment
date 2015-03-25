@@ -39,7 +39,7 @@
   register: dark_load_balancer
   tags:
     - remove-dark-lb
-    - remove-single-deployer-lb
+    - remove-ci-flow-lb
 
 # Create dark load balancer
 - name: Create dark load balancer
@@ -58,11 +58,11 @@
   register: dark_load_balancer
   tags:
     - dark-lb
-    - single-deployer
+    - ci-flow
 
 # Show dark load balancer data
 - name: Show temporary dark load balancer
   debug: var=dark_load_balancer
   tags:
     - dark-lb
-    - single-deployer
+    - ci-flow

@@ -1,0 +1,22 @@
+- name: Test against a live URL
+  local_action: script run_test.sh {{ scheme }}://{{ live_subdomain }} {{ region }}
+  tags:
+    - test-live
+
+- name: Test against a dark URL
+  local_action: script run_test.sh {{ scheme }}://{{ dark_subdomain }} {{ region }}
+  tags:
+    - test-dark
+    - test-single-deployer
+
+- name: Performance test against a dark URL
+  local_action: script performance_run_test.sh {{ scheme }}://{{ dark_subdomain }}
+  ignore_errors: yes
+  tags:
+    - performance-dark
+
+- name: Performance test against a live URL
+  local_action: script performance_run_test.sh {{ scheme }}://{{ live_subdomain }}
+  ignore_errors: yes
+  tags:
+    - performance-live

@@ -20,16 +20,7 @@
   gather_facts: True
   roles:
      - drain
+     - pre_results
      - test
-
-- hosts: breviarius
-  gather_facts: True 
-  roles: 
-     - results
-
-- hosts: localhost
-  connection: local
-  gather_facts: True
-  roles:
-     - store_results
+     - post_results
      - clean_up

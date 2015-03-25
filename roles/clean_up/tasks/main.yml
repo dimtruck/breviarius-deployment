@@ -1,0 +1,129 @@
+- name: Remove dark load balancer dns
+  local_action:
+    module: rax_dns_record
+    credentials: "{{ creds_path }}"
+    domain: "{{ domain }}"
+    name:   "{{ dar_subdomain }}"
+    type:   A
+    data:   "{{ dark_load_balancer.balancer.virtual_ips[0].address }}"
+    state:  absent
+    ttl:    360
+  register: a_record
+  tags:
+    - clean-up-dark
+    - clean-up-ci-flow
+
+- name: Remove old live nodes
+  local_action:
+    module: rax
+    credentials: "{{ creds_path }}"
+    name: "{{ server_name }}"
+    flavor: "{{ flavor }}"
+    image: "{{ image }}"
+    region: "{{ region }}"
+    state: present
+    count: "{{ count }}"
+    group: "{{ group_environ }}"
+    count_offset: 1
+    exact_count: yes
+    wait: yes
+    wait_timeout: 600
+  tags:
+    - clean-up-live
+
+- name: Remove dark nodes
+  local_action:
+    module: rax
+    credentials: "{{ creds_path }}"
+    name: "{{ server_name }}"
+    flavor: "{{ flavor }}"
+    image: "{{ image }}"
+    region: "{{ region }}"
+    state: present
+    count: "{{ count }}"
+    group: "{{ group_environ }}"
+    count_offset: 1
+    exact_count: yes
+    delete_youngest: True
+    wait: yes
+    wait_timeout: 600
+  tags:
+    - clean-up-dark
+
+- name: Remove ci flow nodes
+  local_action:
+    module: rax
+    credentials: "{{ creds_path }}"
+    name: "{{ server_name }}"
+    flavor: "{{ flavor }}"
+    image: "{{ image }}"
+    region: "{{ region }}"
+    state: absent
+    count: "{{ count }}"
+    group: "{{ group_environ }}"
+    count_offset: 1
+    exact_count: yes
+    wait: yes
+    wait_timeout: 600
+  tags:
+    - clean-up-ci-flow
+
+- name: Remove dark load balancer
+  local_action:
+    module: rax_clb
+    credentials: "{{ creds_path }}"
+    name: "dark-{{ load_balancer_name }}"
+    port: "{{ lb_port }}"
+    protocol: "{{ lb_protocol }}"
+    type: PUBLIC
+    timeout: 30
+    region: "{{ region }}"
+    wait: yes
+    wait_timeout: 600
+    state: absent
+  tags:
+    - clean-up-dark
+    - clean-up-live
+    - clean-up-ci-flow
+
+# Delete roles and clients
+- name: Delete roles and clients from breviarius nodes
+  local_action: script clean_up.sh {{ item.name }}
+  with_items: dark_nodes.success
+  when: dark_nodes.action == "create"
+  remote_user: jenkins
+  tags:
+    - clean-up-ci-flow
+
+- name: Remove every node for this environment
+  local_action:
+    module: rax
+    credentials: "{{ creds_path }}"
+    name: "{{ server_name }}"
+    flavor: "{{ flavor }}"
+    image: "{{ image }}"
+    region: "{{ region }}"
+    state: absent
+    count: "{{ count + new_count }}"
+    group: "{{ group_environ }}"
+    count_offset: 1
+    exact_count: yes
+    wait: yes
+  tags:
+    - purge
+
+- name: Remove live load balancer
+  local_action:
+    module: rax_clb
+    credentials: "{{ creds_path }}"
+    name: "{{ load_balancer_name }}"
+    port: "{{ lb_port }}"
+    protocol: "{{ lb_protocol }}"
+    type: PUBLIC
+    timeout: 30
+    region: "{{ region }}"
+    wait: yes
+    wait_timeout: 600
+    state: absent
+  tags:
+    - purge

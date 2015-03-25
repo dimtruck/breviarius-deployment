@@ -1,0 +1,48 @@
+---
+- name: Setup Chef configuration directory
+  file: path=/opt/chef state=directory
+  tags:
+    - deploy
+
+- name: Install Chef client
+  shell: curl -L https://www.chef.io/chef/install.sh | sudo bash
+  tags:
+    - deploy
+
+- name: Setup Chef configuration directory
+  file: path=/etc/chef state=directory
+  tags:
+    - deploy
+
+- name: Setup Chef cache directory
+  file: path=/var/chef/cache state=directory recurse=yes
+  tags:
+    - deploy
+
+- name: Setup Chef client configuration
+  template: src=client.rb dest=/etc/chef/client.rb mode=0644
+  tags:
+    - deploy
+
+- name: Setup Chef validation PEM
+  copy: src={{ validation_src }} dest=/etc/chef/validation.pem mode=0600
+  tags:
+    - deploy
+
+- name: Setup Chef data bag secret
+  copy: src={{ secret_src }} dest=/etc/chef/encrypted_data_bag_secret mode=0600
+  tags:
+    - deploy
+
+- name: Copy over the attributes override
+  copy: src=breviarius_override_attributes.json dest=/etc/chef/breviarius_override_attributes.json
+  tags:
+   - deploy
+
+- name: Run role and recipe
+  command: /opt/chef/bin/chef-client -E '{{ environ }}' -r 'role[{{ role }}]' -j /etc/chef/breviarius_override_attributes.json --once
+  #async: 3000
+  #poll: 5
+  tags:
+    - deploy
+    - chef_only

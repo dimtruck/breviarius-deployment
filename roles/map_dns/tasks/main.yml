@@ -1,0 +1,28 @@
+# Map dns to live load balancer (should only run for new environments)
+- name: Map dns to live load balancer
+  local_action:
+    module: rax_dns_record
+    credentials: "{{ creds_path }}"
+    domain: "{{ domain }}"
+    name:   "{{ live_subdomain }}"
+    type:   A
+    data:   "{{ live_load_balancer.balancer.virtual_ips[0].address }}"
+    state:  present
+    ttl:    360
+  register: a_record
+  tags:
+    - map-live-dns
+
+- name: Map dns to dark load balancer
+  local_action:
+    module: rax_dns_record
+    credentials: "{{ creds_path }}"
+    domain: "{{ domain }}"
+    name:   "{{ dark_subdomain }}"
+    type:   A
+    data:   "{{ dark_load_balancer.balancer.virtual_ips[0].address }}"
+    state:  present
+    ttl:    360
+  register: a_record
+  tags:
+    - map-dark-dns

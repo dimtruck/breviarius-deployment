@@ -51,7 +51,7 @@
   tags:
     - dark-nodes
 
-- name: Remove single deployer nodes
+- name: Remove ci flow nodes
   local_action:
     module: rax
     credentials: "{{ creds_path }}"
@@ -67,10 +67,10 @@
     wait: yes
     wait_timeout: 600
   tags:
-    - single-deployer
+    - ci-flow
 
-# Create new single deployment servers (show always be created anew)
-- name: Create single deployment servers
+# Create new ci flow servers (show always be created anew)
+- name: Create ci flow servers
   local_action:    
     module: rax
     credentials: "{{ creds_path }}"
@@ -87,13 +87,13 @@
     wait_timeout: 600
   register: dark_nodes
   tags:
-    - single-deployer
+    - ci-flow
 
 # Show new servers data
 - name: show created instances
   debug: var=dark_nodes
   tags:
-    - single-deployer
+    - ci-flow
 
 # Add new servers to breviarius group, just as before
 - name: Add dar servers to breviarius host group
@@ -108,14 +108,24 @@
   when: dark_nodes.action == "create"
   tags:
     - dark-nodes
-    - single-deployer
+    - ci-flow
+
+# Delete roles and clients
+- name: Delete roles and clients from breviarius nodes
+  local_action: script clean_up.sh {{ item.name }}
+  with_items: dark_nodes.success
+  when: dark_nodes.action == "create"
+  remote_user: jenkins
+  tags:
+    - dark-nodes
+    - ci-flow
 
 # Show dark load balancer nodes
 - name: Show dark load balancer nodes
   debug: var=solum_dark_load_balancer.balancer.nodes
   tags:
     - dark-nodes
-    - single-deployer
+    - ci-flow
 
 # Add new servers to dark load balancer
 - name: Add dark servers to Blue Load balancer
@@ -134,4 +144,4 @@
   when: dark_nodes.action == "create"
   tags:
     - dark-nodes
-    - single-deployer
+    - ci-flow
